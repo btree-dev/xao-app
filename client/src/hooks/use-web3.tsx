@@ -26,25 +26,15 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         const wallet = new CoinbaseWalletSDK({
           appName: 'NFTickets',
           appLogoUrl: '/icon-192.png',
-          darkMode: false
         });
 
         // Create provider
         const provider = wallet.makeWeb3Provider();
         providerRef.current = provider;
 
-        console.log('Provider created:', provider);
-
-        if (!provider) {
-          throw new Error('Failed to initialize Coinbase Wallet provider');
-        }
-
         // Request account access
         try {
-          console.log('Requesting accounts...');
           const accounts = await provider.request({ method: 'eth_requestAccounts' });
-          console.log('Accounts received:', accounts);
-
           if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
             throw new Error('No accounts found');
           }
@@ -52,7 +42,6 @@ export function Web3Provider({ children }: { children: ReactNode }) {
           const address = accounts[0];
 
           // Add Base chain
-          console.log('Adding Base chain...');
           await provider.request({
             method: 'wallet_addEthereumChain',
             params: [{
@@ -68,16 +57,19 @@ export function Web3Provider({ children }: { children: ReactNode }) {
             }]
           });
 
-          console.log('Base chain added successfully');
-
           await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
           setAddress(address);
           setIsConnected(true);
-
-          console.log('Wallet connected successfully');
         } catch (error: any) {
-          console.error('Wallet connection error:', error);
-          throw new Error(`Wallet connection failed: ${error.message}`);
+          // Check if user rejected the connection
+          if (error.code === 4001 || // User rejected request
+              error.message?.includes('User rejected') || 
+              error.message?.includes('User closed modal')) {
+            // Clean up silently without showing error
+            providerRef.current = null;
+            return;
+          }
+          throw error;
         }
       } catch (error: any) {
         console.error('Wallet setup error:', error);
@@ -86,6 +78,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
           description: error.message || 'Failed to connect wallet',
           variant: 'destructive',
         });
+        // Clean up on error
+        providerRef.current = null;
+        setIsConnected(false);
+        setAddress(null);
         throw error;
       }
     },
