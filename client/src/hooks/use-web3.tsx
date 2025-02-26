@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useState } from 'react';
+import { createContext, useContext, ReactNode, useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -18,34 +18,45 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [address, setAddress] = useState<string | null>(null);
+  const providerRef = useRef<any>(null);
 
   const connectMutation = useMutation({
     mutationFn: async () => {
       try {
         const wallet = new CoinbaseWalletSDK({
           appName: 'NFTickets',
+          appLogoUrl: '/icon-192.png',
+          darkMode: false
         });
 
-        const ethereum = wallet.makeWeb3Provider('https://mainnet.base.org', 8453);
+        // Create provider
+        const provider = wallet.makeWeb3Provider();
+        providerRef.current = provider;
 
-        if (!ethereum) {
+        console.log('Provider created:', provider);
+
+        if (!provider) {
           throw new Error('Failed to initialize Coinbase Wallet provider');
         }
 
         // Request account access
         try {
-          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          console.log('Requesting accounts...');
+          const accounts = await provider.request({ method: 'eth_requestAccounts' });
+          console.log('Accounts received:', accounts);
+
           if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
             throw new Error('No accounts found');
           }
 
           const address = accounts[0];
 
-          // Switch to Base chain
-          await ethereum.request({
+          // Add Base chain
+          console.log('Adding Base chain...');
+          await provider.request({
             method: 'wallet_addEthereumChain',
             params: [{
-              chainId: '0x2105',  // 8453 in hex
+              chainId: '0x2105', // 8453 in hex
               chainName: 'Base',
               nativeCurrency: {
                 name: 'Ethereum',
@@ -57,12 +68,16 @@ export function Web3Provider({ children }: { children: ReactNode }) {
             }]
           });
 
+          console.log('Base chain added successfully');
+
           await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
           setAddress(address);
           setIsConnected(true);
+
+          console.log('Wallet connected successfully');
         } catch (error: any) {
           console.error('Wallet connection error:', error);
-          throw new Error(error.message || 'Failed to connect wallet');
+          throw new Error(`Wallet connection failed: ${error.message}`);
         }
       } catch (error: any) {
         console.error('Wallet setup error:', error);
@@ -77,12 +92,17 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   });
 
   const disconnect = () => {
+    if (providerRef.current) {
+      providerRef.current = null;
+    }
     setIsConnected(false);
     setAddress(null);
   };
 
   const mintTicket = async (eventId: number, tokenId: number) => {
-    if (!isConnected) throw new Error('Wallet not connected');
+    if (!isConnected || !providerRef.current) {
+      throw new Error('Wallet not connected');
+    }
     // TODO: Implement NFT minting logic using OnchainKit
     throw new Error('Not implemented');
   };
