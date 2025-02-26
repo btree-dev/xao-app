@@ -26,33 +26,24 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         const wallet = new CoinbaseWalletSDK({
           appName: 'NFTickets',
           appLogoUrl: '/icon-192.png',
-          darkMode: false
         });
 
         // Create provider
-        const provider = wallet.makeWeb3Provider();
+        const provider = wallet.makeWeb3Provider('https://mainnet.base.org', 8453);
         providerRef.current = provider;
-
-        console.log('Provider created:', provider);
-
-        if (!provider) {
-          throw new Error('Failed to initialize Coinbase Wallet provider');
-        }
 
         // Request account access
         try {
-          console.log('Requesting accounts...');
           const accounts = await provider.request({ method: 'eth_requestAccounts' });
-          console.log('Accounts received:', accounts);
 
+          // If user cancelled, accounts will be null or empty
           if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-            throw new Error('No accounts found');
+            return; // Exit silently on user cancellation
           }
 
           const address = accounts[0];
 
           // Add Base chain
-          console.log('Adding Base chain...');
           await provider.request({
             method: 'wallet_addEthereumChain',
             params: [{
@@ -68,24 +59,33 @@ export function Web3Provider({ children }: { children: ReactNode }) {
             }]
           });
 
-          console.log('Base chain added successfully');
-
           await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
           setAddress(address);
           setIsConnected(true);
-
-          console.log('Wallet connected successfully');
         } catch (error: any) {
-          console.error('Wallet connection error:', error);
-          throw new Error(`Wallet connection failed: ${error.message}`);
+          // Check for user rejection
+          if (error.code === 4001) {
+            return; // User rejected the request, exit silently
+          }
+
+          // Handle other errors
+          const errorMessage = error.message || 'Failed to connect wallet';
+          toast({
+            title: 'Connection failed',
+            description: errorMessage,
+            variant: 'destructive',
+          });
+          throw error;
         }
       } catch (error: any) {
-        console.error('Wallet setup error:', error);
-        toast({
-          title: 'Connection failed',
-          description: error.message || 'Failed to connect wallet',
-          variant: 'destructive',
-        });
+        // Only show error toast for non-user-rejection errors
+        if (error.code !== 4001) {
+          toast({
+            title: 'Connection failed',
+            description: 'Could not initialize wallet connection',
+            variant: 'destructive',
+          });
+        }
         throw error;
       }
     },
