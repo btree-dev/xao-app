@@ -42,47 +42,56 @@ export function Web3Provider({ children }: { children: ReactNode }) {
           const address = accounts[0];
 
           // Add Base chain
-          await provider.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x2105', // 8453 in hex
-              chainName: 'Base',
-              nativeCurrency: {
-                name: 'Ethereum',
-                symbol: 'ETH',
-                decimals: 18
-              },
-              rpcUrls: ['https://mainnet.base.org'],
-              blockExplorerUrls: ['https://basescan.org']
-            }]
-          });
+          try {
+            await provider.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x2105', // 8453 in hex
+                chainName: 'Base',
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org']
+              }]
+            });
+          } catch (chainError: any) {
+            // Skip chain addition errors as the chain might already be added
+            console.log('Chain addition skipped:', chainError.message);
+          }
 
           await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
           setAddress(address);
           setIsConnected(true);
         } catch (error: any) {
-          // Check if user rejected the connection
+          // Check if user rejected the connection or closed the modal
           if (error.code === 4001 || // User rejected request
-              error.message?.includes('User rejected') || 
-              error.message?.includes('User closed modal')) {
+              error.code === -32603 || // Internal JSON-RPC error
+              error.message?.toLowerCase().includes('user rejected') || 
+              error.message?.toLowerCase().includes('user denied') ||
+              error.message?.toLowerCase().includes('user closed') ||
+              error.message?.toLowerCase().includes('modal closed')) {
             // Clean up silently without showing error
-            providerRef.current = null;
+            disconnect();
             return;
           }
           throw error;
         }
       } catch (error: any) {
-        console.error('Wallet setup error:', error);
-        toast({
-          title: 'Connection failed',
-          description: error.message || 'Failed to connect wallet',
-          variant: 'destructive',
-        });
+        // Only show error toast for actual errors, not user cancellations
+        if (error.code !== 4001 && 
+            !error.message?.toLowerCase().includes('user') &&
+            !error.message?.toLowerCase().includes('modal')) {
+          toast({
+            title: 'Connection failed',
+            description: error.message || 'Failed to connect wallet',
+            variant: 'destructive',
+          });
+        }
         // Clean up on error
-        providerRef.current = null;
-        setIsConnected(false);
-        setAddress(null);
-        throw error;
+        disconnect();
       }
     },
   });
