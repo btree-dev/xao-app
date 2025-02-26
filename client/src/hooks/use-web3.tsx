@@ -26,65 +26,53 @@ export function Web3Provider({ children }: { children: ReactNode }) {
           appName: 'NFTickets',
         });
 
-        const baseChainConfig = {
-          chainId: 8453,
-          chainName: 'Base',
-          nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
-          rpcUrls: ['https://mainnet.base.org'],
-          blockExplorerUrls: ['https://basescan.org'],
-        };
-
-        // Initialize ethereum provider
-        const ethereum = wallet.makeWeb3Provider(baseChainConfig.rpcUrls[0], baseChainConfig.chainId);
+        const ethereum = wallet.makeWeb3Provider('https://mainnet.base.org', 8453);
 
         if (!ethereum) {
           throw new Error('Failed to initialize Coinbase Wallet provider');
         }
 
         // Request account access
-        const accounts = await ethereum.request<string[]>({ method: 'eth_requestAccounts' });
-        if (!accounts || accounts.length === 0) {
-          throw new Error('No accounts found');
-        }
-
-        const address = accounts[0];
-
-        // Switch to Base chain
         try {
-          await ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: `0x${baseChainConfig.chainId.toString(16)}` }],
-          });
-        } catch (switchError: any) {
-          // Chain hasn't been added yet
-          if (switchError.code === 4902) {
-            await ethereum.request({
-              method: 'wallet_addEthereumChain',
-              params: [baseChainConfig],
-            });
-          } else {
-            throw switchError;
+          const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+          if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+            throw new Error('No accounts found');
           }
-        }
 
-        await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
-        setAddress(address);
-        setIsConnected(true);
+          const address = accounts[0];
+
+          // Switch to Base chain
+          await ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2105',  // 8453 in hex
+              chainName: 'Base',
+              nativeCurrency: {
+                name: 'Ethereum',
+                symbol: 'ETH',
+                decimals: 18
+              },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org']
+            }]
+          });
+
+          await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
+          setAddress(address);
+          setIsConnected(true);
+        } catch (error: any) {
+          console.error('Wallet connection error:', error);
+          throw new Error(error.message || 'Failed to connect wallet');
+        }
       } catch (error: any) {
+        console.error('Wallet setup error:', error);
         toast({
           title: 'Connection failed',
-          description: error.message,
+          description: error.message || 'Failed to connect wallet',
           variant: 'destructive',
         });
         throw error;
       }
-    },
-    onError: (error: Error) => {
-      toast({
-        title: 'Connection failed',
-        description: error.message,
-        variant: 'destructive',
-      });
     },
   });
 
