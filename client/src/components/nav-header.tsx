@@ -16,24 +16,36 @@ export function NavHeader() {
         </Link>
 
         <nav className="flex items-center gap-4">
-          {user?.isArtist && (
-            <Link href="/create-event">
-              <Button variant="outline">Create Event</Button>
-            </Link>
+          {user ? (
+            <>
+              {user.isArtist && (
+                <Link href="/create-event">
+                  <Button variant="outline">Create Event</Button>
+                </Link>
+              )}
+
+              <Link href="/dashboard">
+                <Button variant="ghost">Dashboard</Button>
+              </Link>
+
+              <Web3Button />
+
+              <Button
+                variant="ghost"
+                onClick={() => logoutMutation.mutate()}
+              >
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Web3Button />
+
+              <Link href="/auth">
+                <Button variant="outline">Login / Register</Button>
+              </Link>
+            </>
           )}
-          
-          <Link href="/dashboard">
-            <Button variant="ghost">Dashboard</Button>
-          </Link>
-
-          <Web3Button />
-
-          <Button
-            variant="ghost"
-            onClick={() => logoutMutation.mutate()}
-          >
-            Logout
-          </Button>
         </nav>
       </div>
     </header>

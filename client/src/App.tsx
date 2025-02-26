@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Web3Provider } from "@/hooks/use-web3";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "./lib/protected-route";
+import { NavHeader } from "@/components/nav-header";
 
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
@@ -31,7 +32,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Web3Provider>
-          <Router />
+          <div className="min-h-screen bg-background">
+            <NavHeader />
+            <Router />
+          </div>
           <Toaster />
         </Web3Provider>
       </AuthProvider>
