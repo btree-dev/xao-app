@@ -23,75 +23,67 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const connectMutation = useMutation({
     mutationFn: async () => {
       try {
+        // Initialize wallet with minimal config
         const wallet = new CoinbaseWalletSDK({
-          appName: 'NFTickets',
-          appLogoUrl: '/icon-192.png',
-          darkMode: false
+          appName: 'NFTickets'
         });
 
-        // Create Web3 Provider
-        const provider = wallet.makeWeb3Provider('https://mainnet.base.org', 8453);
+        // Create Web3 Provider with Base chain
+        const provider = wallet.makeWeb3Provider('https://mainnet.base.org');
         providerRef.current = provider;
 
         // Request account access
+        const accounts = await provider.request({ method: 'eth_requestAccounts' });
+
+        // If user cancelled, accounts will be null or empty
+        if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+          return; // Exit silently on user cancellation
+        }
+
+        const address = accounts[0];
+
+        // Add Base chain
         try {
-          const accounts = await provider.request({ method: 'eth_requestAccounts' });
-
-          // If user cancelled, accounts will be null or empty
-          if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-            return; // Exit silently on user cancellation
-          }
-
-          const address = accounts[0];
-
-          // Add Base chain
-          try {
-            await provider.request({
-              method: 'wallet_switchEthereumChain',
-              params: [{ chainId: '0x2105' }], // 8453 in hex
-            });
-          } catch (switchError: any) {
-            // This error code indicates that the chain has not been added to MetaMask
-            if (switchError.code === 4902) {
-              await provider.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                  chainId: '0x2105', // 8453 in hex
-                  chainName: 'Base',
-                  nativeCurrency: {
-                    name: 'Ethereum',
-                    symbol: 'ETH',
-                    decimals: 18
-                  },
-                  rpcUrls: ['https://mainnet.base.org'],
-                  blockExplorerUrls: ['https://basescan.org']
-                }]
-              });
-            } else {
-              throw switchError;
-            }
-          }
-
-          await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
-          setAddress(address);
-          setIsConnected(true);
-        } catch (error: any) {
-          // Check for user rejection
-          if (error.code === 4001) {
-            return; // User rejected the request, exit silently
-          }
-          throw error;
-        }
-      } catch (error: any) {
-        console.error('Wallet setup error:', error);
-        // Only show error toast for non-user-rejection errors
-        if (error.code !== 4001) {
-          toast({
-            title: 'Connection failed',
-            description: error.message || 'Could not initialize wallet connection',
-            variant: 'destructive',
+          await provider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x2105' }], // 8453 in hex
           });
+        } catch (switchError: any) {
+          // This error code indicates that the chain has not been added to MetaMask
+          if (switchError.code === 4902) {
+            await provider.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x2105', // 8453 in hex
+                chainName: 'Base',
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org']
+              }]
+            });
+          } else {
+            throw switchError;
+          }
         }
+
+        await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
+        setAddress(address);
+        setIsConnected(true);
+      } catch (error: any) {
+        // Check for user rejection
+        if (error.code === 4001) {
+          return; // User rejected the request, exit silently
+        }
+        console.error('Wallet connection error:', error);
+        toast({
+          title: 'Connection failed',
+          description: error.message || 'Could not connect to wallet',
+          variant: 'destructive',
+        });
         throw error;
       }
     },
