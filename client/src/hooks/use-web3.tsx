@@ -44,20 +44,32 @@ export function Web3Provider({ children }: { children: ReactNode }) {
           const address = accounts[0];
 
           // Add Base chain
-          await provider.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: '0x2105', // 8453 in hex
-              chainName: 'Base',
-              nativeCurrency: {
-                name: 'Ethereum',
-                symbol: 'ETH',
-                decimals: 18
-              },
-              rpcUrls: ['https://mainnet.base.org'],
-              blockExplorerUrls: ['https://basescan.org']
-            }]
-          });
+          try {
+            await provider.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x2105' }], // 8453 in hex
+            });
+          } catch (switchError: any) {
+            // This error code indicates that the chain has not been added to MetaMask
+            if (switchError.code === 4902) {
+              await provider.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0x2105', // 8453 in hex
+                  chainName: 'Base',
+                  nativeCurrency: {
+                    name: 'Ethereum',
+                    symbol: 'ETH',
+                    decimals: 18
+                  },
+                  rpcUrls: ['https://mainnet.base.org'],
+                  blockExplorerUrls: ['https://basescan.org']
+                }]
+              });
+            } else {
+              throw switchError;
+            }
+          }
 
           await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
           setAddress(address);
@@ -67,14 +79,6 @@ export function Web3Provider({ children }: { children: ReactNode }) {
           if (error.code === 4001) {
             return; // User rejected the request, exit silently
           }
-
-          // Handle other errors
-          const errorMessage = error.message || 'Failed to connect wallet';
-          toast({
-            title: 'Connection failed',
-            description: errorMessage,
-            variant: 'destructive',
-          });
           throw error;
         }
       } catch (error: any) {
@@ -82,7 +86,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         if (error.code !== 4001) {
           toast({
             title: 'Connection failed',
-            description: 'Could not initialize wallet connection',
+            description: error.message || 'Could not initialize wallet connection',
             variant: 'destructive',
           });
         }
