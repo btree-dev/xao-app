@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 import CoinbaseWalletSDK from '@coinbase/wallet-sdk';
 
 type Web3ContextType = {
@@ -21,17 +21,54 @@ export function Web3Provider({ children }: { children: ReactNode }) {
 
   const connectMutation = useMutation({
     mutationFn: async () => {
-      const wallet = new CoinbaseWalletSDK({
-        appName: 'NFTickets',
-        defaultChainId: 8453, // Base chain
-      });
+      try {
+        const wallet = new CoinbaseWalletSDK({
+          appName: 'NFTickets',
+        });
 
-      const accounts = await wallet.connect();
-      const address = accounts[0];
+        const baseChainConfig = {
+          chainId: 8453, // Base chain
+          chainName: 'Base',
+          nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+          rpcUrls: ['https://mainnet.base.org'],
+          blockExplorerUrls: ['https://basescan.org'],
+        };
 
-      await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
-      setAddress(address);
-      setIsConnected(true);
+        const ethereum = wallet.makeWeb3Provider(baseChainConfig.rpcUrls[0], baseChainConfig.chainId);
+
+        // Request account access
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
+
+        // Switch to Base chain
+        try {
+          await ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: `0x${baseChainConfig.chainId.toString(16)}` }],
+          });
+        } catch (switchError: any) {
+          // Chain hasn't been added yet
+          if (switchError.code === 4902) {
+            await ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [baseChainConfig],
+            });
+          } else {
+            throw switchError;
+          }
+        }
+
+        await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
+        setAddress(address);
+        setIsConnected(true);
+      } catch (error: any) {
+        toast({
+          title: 'Connection failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+        throw error;
+      }
     },
     onError: (error: Error) => {
       toast({
