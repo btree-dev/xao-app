@@ -27,17 +27,26 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         });
 
         const baseChainConfig = {
-          chainId: 8453, // Base chain
+          chainId: 8453,
           chainName: 'Base',
           nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
           rpcUrls: ['https://mainnet.base.org'],
           blockExplorerUrls: ['https://basescan.org'],
         };
 
+        // Initialize ethereum provider
         const ethereum = wallet.makeWeb3Provider(baseChainConfig.rpcUrls[0], baseChainConfig.chainId);
 
+        if (!ethereum) {
+          throw new Error('Failed to initialize Coinbase Wallet provider');
+        }
+
         // Request account access
-        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        const accounts = await ethereum.request<string[]>({ method: 'eth_requestAccounts' });
+        if (!accounts || accounts.length === 0) {
+          throw new Error('No accounts found');
+        }
+
         const address = accounts[0];
 
         // Switch to Base chain
