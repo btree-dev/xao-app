@@ -26,9 +26,10 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         const wallet = new CoinbaseWalletSDK({
           appName: 'NFTickets',
           appLogoUrl: '/icon-192.png',
+          darkMode: false
         });
 
-        // Create provider
+        // Create Web3 Provider
         const provider = wallet.makeWeb3Provider('https://mainnet.base.org', 8453);
         providerRef.current = provider;
 
@@ -82,6 +83,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
           throw error;
         }
       } catch (error: any) {
+        console.error('Wallet setup error:', error);
         // Only show error toast for non-user-rejection errors
         if (error.code !== 4001) {
           toast({
