@@ -23,65 +23,67 @@ export function Web3Provider({ children }: { children: ReactNode }) {
   const connectMutation = useMutation({
     mutationFn: async () => {
       try {
-        // Initialize wallet with minimal config
         const wallet = new CoinbaseWalletSDK({
-          appName: 'NFTickets'
+          appName: 'NFTickets',
+          appLogoUrl: '/icon-192.png',
+          darkMode: false
         });
 
-        // Create Web3 Provider with Base chain
+        // Create provider
         const provider = wallet.makeWeb3Provider();
         providerRef.current = provider;
 
+        console.log('Provider created:', provider);
+
+        if (!provider) {
+          throw new Error('Failed to initialize Coinbase Wallet provider');
+        }
+
         // Request account access
-        const accounts = await provider.request({ method: 'eth_requestAccounts' });
-
-        // If user cancelled, accounts will be null or empty
-        if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-          return; // Exit silently on user cancellation
-        }
-
-        const address = accounts[0];
-
-        // Add Base chain
         try {
-          await provider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x2105' }], // 8453 in hex
-          });
-        } catch (switchError: any) {
-          // This error code indicates that the chain has not been added to MetaMask
-          if (switchError.code === 4902) {
-            await provider.request({
-              method: 'wallet_addEthereumChain',
-              params: [{
-                chainId: '0x2105', // 8453 in hex
-                chainName: 'Base',
-                nativeCurrency: {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  decimals: 18
-                },
-                rpcUrls: ['https://mainnet.base.org'],
-                blockExplorerUrls: ['https://basescan.org']
-              }]
-            });
-          } else {
-            throw switchError;
-          }
-        }
+          console.log('Requesting accounts...');
+          const accounts = await provider.request({ method: 'eth_requestAccounts' });
+          console.log('Accounts received:', accounts);
 
-        await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
-        setAddress(address);
-        setIsConnected(true);
-      } catch (error: any) {
-        // Check for user rejection
-        if (error.code === 4001) {
-          return; // User rejected the request, exit silently
+          if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
+            throw new Error('No accounts found');
+          }
+
+          const address = accounts[0];
+
+          // Add Base chain
+          console.log('Adding Base chain...');
+          await provider.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x2105', // 8453 in hex
+              chainName: 'Base',
+              nativeCurrency: {
+                name: 'Ethereum',
+                symbol: 'ETH',
+                decimals: 18
+              },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org']
+            }]
+          });
+
+          console.log('Base chain added successfully');
+
+          await apiRequest('POST', '/api/user/wallet', { walletAddress: address });
+          setAddress(address);
+          setIsConnected(true);
+
+          console.log('Wallet connected successfully');
+        } catch (error: any) {
+          console.error('Wallet connection error:', error);
+          throw new Error(`Wallet connection failed: ${error.message}`);
         }
-        console.error('Wallet connection error:', error);
+      } catch (error: any) {
+        console.error('Wallet setup error:', error);
         toast({
           title: 'Connection failed',
-          description: error.message || 'Could not connect to wallet',
+          description: error.message || 'Failed to connect wallet',
           variant: 'destructive',
         });
         throw error;
