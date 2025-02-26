@@ -29,7 +29,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         });
 
         // Create Web3 Provider with Base chain
-        const provider = wallet.makeWeb3Provider('https://mainnet.base.org');
+        const provider = wallet.makeWeb3Provider();
         providerRef.current = provider;
 
         // Request account access
