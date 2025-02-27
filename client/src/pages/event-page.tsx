@@ -15,11 +15,13 @@ import {
 import { Loader2, MapPin, Calendar, Ticket } from "lucide-react";
 
 export default function EventPage() {
-  const { id } = useParams();
+  const params = useParams<{ id: string }>();
+  const eventId = parseInt(params.id);
   const { connect, isConnected, mintTicket } = useWeb3();
 
   const { data: event, isLoading } = useQuery<Event>({
-    queryKey: ["/api/events", id],
+    queryKey: ["/api/events", eventId],
+    enabled: !isNaN(eventId), // Only run query if we have a valid ID
   });
 
   if (isLoading || !event) {
@@ -68,9 +70,7 @@ export default function EventPage() {
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <span>
-                    {format(new Date(event.date || Date.now()), "MMMM d, yyyy")}
-                  </span>
+                  <span>{formattedDate}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-muted-foreground" />
