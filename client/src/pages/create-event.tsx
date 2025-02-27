@@ -52,7 +52,12 @@ export default function CreateEvent() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      const res = await apiRequest("POST", "/api/events", data);
+      // Ensure date is a proper Date object
+      const formattedData = {
+        ...data,
+        date: new Date(data.date),
+      };
+      const res = await apiRequest("POST", "/api/events", formattedData);
       return res.json();
     },
     onSuccess: () => {
@@ -122,14 +127,15 @@ export default function CreateEvent() {
                   <FormField
                     control={form.control}
                     name="date"
-                    render={({ field }) => (
+                    render={({ field: { value, onChange, ...field } }) => (
                       <FormItem>
                         <FormLabel>Event Date</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             type="datetime-local"
-                            value={field.value?.toString().slice(0, 16)}
+                            value={value instanceof Date ? value.toISOString().slice(0, 16) : ''}
+                            onChange={(e) => onChange(new Date(e.target.value))}
                           />
                         </FormControl>
                         <FormMessage />
