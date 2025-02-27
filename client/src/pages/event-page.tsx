@@ -19,12 +19,12 @@ export default function EventPage() {
   const eventId = parseInt(params.id);
   const { connect, isConnected, mintTicket } = useWeb3();
 
-  const { data: event, isLoading } = useQuery<Event>({
+  const { data: events, isLoading } = useQuery<Event[]>({
     enabled: !isNaN(eventId), // Only run query if we have a valid ID
     queryKey: ["/api/events", eventId],
   });
 
-  if (isLoading || !event) {
+  if (isLoading || !events) {
     return (
       <div className="min-h-screen">
         <NavHeader />
@@ -37,6 +37,7 @@ export default function EventPage() {
 
   // Safely parse the date with error handling
   let formattedDate = "Date not available";
+  const event = events[eventId - 1];
   try {
     if (event.date) {
       const eventDate = parseISO(event.date);
