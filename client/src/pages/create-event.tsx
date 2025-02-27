@@ -52,9 +52,10 @@ export default function CreateEvent() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      // Ensure price is converted to a number
+      // Format all fields properly before submission
       const formattedData = {
         ...data,
+        date: new Date(data.date).toISOString(), // Ensure proper date format
         price: parseFloat(data.price.toString()),
         totalSupply: parseInt(data.totalSupply.toString()),
         remainingSupply: parseInt(data.totalSupply.toString()),
@@ -129,14 +130,18 @@ export default function CreateEvent() {
                   <FormField
                     control={form.control}
                     name="date"
-                    render={({ field }) => (
+                    render={({ field: { onChange, value, ...field } }) => (
                       <FormItem>
                         <FormLabel>Event Date</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             type="datetime-local"
-                            value={field.value?.toString().slice(0, 16)}
+                            value={value instanceof Date ? value.toISOString().slice(0, 16) : value}
+                            onChange={(e) => {
+                              const date = new Date(e.target.value);
+                              onChange(date);
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
