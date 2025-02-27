@@ -52,7 +52,14 @@ export default function CreateEvent() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      const res = await apiRequest("POST", "/api/events", data);
+      // Ensure price is converted to a number
+      const formattedData = {
+        ...data,
+        price: parseFloat(data.price.toString()),
+        totalSupply: parseInt(data.totalSupply.toString()),
+        remainingSupply: parseInt(data.totalSupply.toString()),
+      };
+      const res = await apiRequest("POST", "/api/events", formattedData);
       return res.json();
     },
     onSuccess: () => {
@@ -156,11 +163,17 @@ export default function CreateEvent() {
                   <FormField
                     control={form.control}
                     name="price"
-                    render={({ field }) => (
+                    render={({ field: { onChange, ...field } }) => (
                       <FormItem>
                         <FormLabel>Price (ETH)</FormLabel>
                         <FormControl>
-                          <Input {...field} type="number" min="0" step="0.001" />
+                          <Input
+                            {...field}
+                            type="number"
+                            min="0"
+                            step="0.001"
+                            onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -170,11 +183,16 @@ export default function CreateEvent() {
                   <FormField
                     control={form.control}
                     name="totalSupply"
-                    render={({ field }) => (
+                    render={({ field: { onChange, ...field } }) => (
                       <FormItem>
                         <FormLabel>Total Tickets</FormLabel>
                         <FormControl>
-                          <Input {...field} type="number" min="1" />
+                          <Input
+                            {...field}
+                            type="number"
+                            min="1"
+                            onChange={(e) => onChange(parseInt(e.target.value) || 1)}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
