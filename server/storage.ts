@@ -1,4 +1,4 @@
-import { InsertUser, User, Event, InsertEvent, Ticket, InsertTicket } from "@shared/schema";
+import { InsertUser, User, Event, InsertEvent, Ticket, InsertTicket, VerificationCode } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -9,9 +9,14 @@ export interface IStorage {
 
   // User operations
   getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserWallet(userId: number, walletAddress: string): Promise<User>;
+
+  // Verification operations
+  createVerificationCode(email: string, code: string): Promise<VerificationCode>;
+  getVerificationCode(email: string, code: string): Promise<VerificationCode | undefined>;
+  markVerificationCodeAsUsed(id: number): Promise<void>;
 
   // Event operations
   createEvent(event: InsertEvent): Promise<Event>;
@@ -29,18 +34,22 @@ export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private events: Map<number, Event>;
   private tickets: Map<number, Ticket>;
+  private verificationCodes: Map<number, VerificationCode>;
   sessionStore: session.Store;
   private nextUserId: number;
   private nextEventId: number;
   private nextTicketId: number;
+  private nextVerificationCodeId: number;
 
   constructor() {
     this.users = new Map();
     this.events = new Map();
     this.tickets = new Map();
+    this.verificationCodes = new Map();
     this.nextUserId = 1;
     this.nextEventId = 1;
     this.nextTicketId = 1;
+    this.nextVerificationCodeId = 1;
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000,
     });
@@ -50,9 +59,9 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
+  async getUserByEmail(email: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
-      (user) => user.username === username,
+      (user) => user.email === email,
     );
   }
 
@@ -60,13 +69,44 @@ export class MemStorage implements IStorage {
     const id = this.nextUserId++;
     const user: User = {
       id,
-      username: insertUser.username,
-      password: insertUser.password,
+      email: insertUser.email,
       isArtist: insertUser.isArtist ?? false,
       walletAddress: insertUser.walletAddress ?? null,
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async createVerificationCode(email: string, code: string): Promise<VerificationCode> {
+    const id = this.nextVerificationCodeId++;
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+    const verificationCode: VerificationCode = {
+      id,
+      email,
+      code,
+      expiresAt,
+      used: false,
+    };
+    this.verificationCodes.set(id, verificationCode);
+    return verificationCode;
+  }
+
+  async getVerificationCode(email: string, code: string): Promise<VerificationCode | undefined> {
+    return Array.from(this.verificationCodes.values()).find(
+      (vc) => 
+        vc.email === email && 
+        vc.code === code && 
+        vc.expiresAt > new Date() && 
+        !vc.used
+    );
+  }
+
+  async markVerificationCodeAsUsed(id: number): Promise<void> {
+    const code = this.verificationCodes.get(id);
+    if (code) {
+      code.used = true;
+      this.verificationCodes.set(id, code);
+    }
   }
 
   async updateUserWallet(userId: number, walletAddress: string): Promise<User> {

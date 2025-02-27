@@ -1,11 +1,9 @@
 import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
 import { Express } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { randomInt } from "crypto";
 
 declare global {
   namespace Express {
@@ -13,19 +11,8 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+function generateVerificationCode(): string {
+  return randomInt(100000, 999999).toString();
 }
 
 export function setupAuth(app: Express) {
@@ -45,20 +32,6 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  passport.use(
-    new LocalStrategy(async (username, password, done) => {
-      try {
-        const user = await storage.getUserByUsername(username);
-        if (!user || !(await comparePasswords(password, user.password))) {
-          return done(null, false);
-        }
-        return done(null, user);
-      } catch (err) {
-        return done(err);
-      }
-    }),
-  );
-
   passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
@@ -69,30 +42,57 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res, next) => {
+  // Step 1: Request verification code
+  app.post("/api/auth/request-code", async (req, res) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
-      if (existingUser) {
-        return res.status(400).send("Username already exists");
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).send("Email is required");
       }
 
-      const user = await storage.createUser({
-        ...req.body,
-        password: await hashPassword(req.body.password),
-        isArtist: req.body.isArtist || false,
-      });
+      const code = generateVerificationCode();
+      await storage.createVerificationCode(email, code);
 
-      req.login(user, (err) => {
-        if (err) return next(err);
-        res.status(201).json(user);
-      });
+      // In a real application, send this code via email
+      // For development, we'll just return it in the response
+      console.log(`Verification code for ${email}: ${code}`);
+      res.json({ message: "Verification code sent" });
     } catch (err) {
-      next(err);
+      res.status(500).json({ message: "Failed to send verification code" });
     }
   });
 
-  app.post("/api/login", passport.authenticate("local"), (req, res) => {
-    res.status(200).json(req.user);
+  // Step 2: Verify code and login/register
+  app.post("/api/auth/verify", async (req, res) => {
+    try {
+      const { email, code } = req.body;
+
+      const verificationCode = await storage.getVerificationCode(email, code);
+      if (!verificationCode) {
+        return res.status(400).json({ message: "Invalid or expired code" });
+      }
+
+      // Mark the code as used
+      await storage.markVerificationCodeAsUsed(verificationCode.id);
+
+      // Get existing user or create new one
+      let user = await storage.getUserByEmail(email);
+      if (!user) {
+        user = await storage.createUser({
+          email,
+          isArtist: false,
+          walletAddress: null,
+        });
+      }
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) throw err;
+        res.json(user);
+      });
+    } catch (err) {
+      res.status(500).json({ message: "Verification failed" });
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {

@@ -4,10 +4,17 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  email: text("email").notNull().unique(),
   isArtist: boolean("is_artist").notNull().default(false),
   walletAddress: text("wallet_address"),
+});
+
+export const verificationCodes = pgTable("verification_codes", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: boolean("used").notNull().default(false),
 });
 
 export const events = pgTable("events", {
@@ -33,13 +40,18 @@ export const tickets = pgTable("tickets", {
   purchaseDate: timestamp("purchase_date").notNull(),
 });
 
+// Updated schemas
 export const insertUserSchema = createInsertSchema(users)
   .pick({
-    username: true,
-    password: true,
+    email: true,
     isArtist: true,
     walletAddress: true,
   });
+
+export const verifyEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  code: z.string().length(6, "Verification code must be 6 digits"),
+});
 
 export const insertEventSchema = createInsertSchema(events)
   .pick({
@@ -70,3 +82,4 @@ export type InsertTicket = z.infer<typeof insertTicketSchema>;
 export type User = typeof users.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type Ticket = typeof tickets.$inferSelect;
+export type VerificationCode = typeof verificationCodes.$inferSelect;

@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { insertUserSchema } from "@shared/schema";
+import { verifyEmailSchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,13 +20,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isArtist, setIsArtist] = useState(false);
+  const [showVerification, setShowVerification] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -34,23 +39,66 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
 
-  const loginForm = useForm({
+  const emailForm = useForm({
     resolver: zodResolver(
-      insertUserSchema.pick({ username: true, password: true })
+      verifyEmailSchema.pick({ email: true })
     ),
     defaultValues: {
-      username: "",
-      password: ""
+      email: "",
     }
   });
 
-  const registerForm = useForm({
-    resolver: zodResolver(insertUserSchema),
+  const verificationForm = useForm({
+    resolver: zodResolver(verifyEmailSchema),
     defaultValues: {
-      username: "",
-      password: "",
-      isArtist: false,
-      walletAddress: null
+      email: "",
+      code: "",
+    }
+  });
+
+  const requestCodeMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const res = await apiRequest("POST", "/api/auth/request-code", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Verification code sent",
+        description: "Please check your email for the verification code.",
+      });
+      setShowVerification(true);
+      verificationForm.setValue("email", emailForm.getValues("email"));
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send code",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const verifyCodeMutation = useMutation({
+    mutationFn: async (data: { email: string; code: string }) => {
+      const res = await apiRequest("POST", "/api/auth/verify", {
+        ...data,
+        isArtist,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "You have been logged in successfully.",
+      });
+      setLocation("/");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Verification failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -67,117 +115,84 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="register">Register</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login">
-                <Form {...loginForm}>
-                  <form
-                    onSubmit={loginForm.handleSubmit((data) =>
-                      loginMutation.mutate(data)
+            {!showVerification ? (
+              <Form {...emailForm}>
+                <form
+                  onSubmit={emailForm.handleSubmit((data) =>
+                    requestCodeMutation.mutate(data)
+                  )}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={emailForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="email" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
-                    className="space-y-4"
+                  />
+                  <FormItem className="flex items-center justify-between">
+                    <FormLabel>Register as an Artist</FormLabel>
+                    <Switch
+                      checked={isArtist}
+                      onCheckedChange={setIsArtist}
+                    />
+                  </FormItem>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={requestCodeMutation.isPending}
                   >
-                    <FormField
-                      control={loginForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    Send Verification Code
+                  </Button>
+                </form>
+              </Form>
+            ) : (
+              <Form {...verificationForm}>
+                <form
+                  onSubmit={verificationForm.handleSubmit((data) =>
+                    verifyCodeMutation.mutate(data)
+                  )}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={verificationForm.control}
+                    name="code"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Verification Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} maxLength={6} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowVerification(false)}
+                    >
+                      Back
+                    </Button>
                     <Button
                       type="submit"
-                      className="w-full"
-                      disabled={loginMutation.isPending}
+                      className="flex-1"
+                      disabled={verifyCodeMutation.isPending}
                     >
-                      Login
+                      Verify
                     </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-
-              <TabsContent value="register">
-                <Form {...registerForm}>
-                  <form
-                    onSubmit={registerForm.handleSubmit((data) =>
-                      registerMutation.mutate(data)
-                    )}
-                    className="space-y-4"
-                  >
-                    <FormField
-                      control={registerForm.control}
-                      name="username"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Username</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={registerForm.control}
-                      name="isArtist"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between">
-                          <FormLabel>Register as an Artist</FormLabel>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={registerMutation.isPending}
-                    >
-                      Register
-                    </Button>
-                  </form>
-                </Form>
-              </TabsContent>
-            </Tabs>
+                  </div>
+                </form>
+              </Form>
+            )}
           </CardContent>
         </Card>
       </div>
