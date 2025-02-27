@@ -57,7 +57,7 @@ export default function EventPage() {
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <span>{format(new Date(event.date), "MMMM d, yyyy")}</span>
+                    <span>{format(new Date(event.date || Date.now()), "MMMM d, yyyy")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-muted-foreground" />
