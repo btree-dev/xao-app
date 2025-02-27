@@ -6,19 +6,19 @@ const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
   sessionStore: session.Store;
-  
+
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserWallet(userId: number, walletAddress: string): Promise<User>;
-  
+
   // Event operations
   createEvent(event: InsertEvent): Promise<Event>;
   getEvent(id: number): Promise<Event | undefined>;
   getEvents(): Promise<Event[]>;
   getArtistEvents(artistId: number): Promise<Event[]>;
-  
+
   // Ticket operations
   createTicket(ticket: InsertTicket): Promise<Ticket>;
   getUserTickets(userId: number): Promise<Ticket[]>;
@@ -58,7 +58,13 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.nextUserId++;
-    const user: User = { ...insertUser, id };
+    const user: User = {
+      id,
+      username: insertUser.username,
+      password: insertUser.password,
+      isArtist: insertUser.isArtist ?? false,
+      walletAddress: insertUser.walletAddress ?? null,
+    };
     this.users.set(id, user);
     return user;
   }
@@ -73,7 +79,20 @@ export class MemStorage implements IStorage {
 
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
     const id = this.nextEventId++;
-    const event: Event = { ...insertEvent, id };
+    const event: Event = {
+      id,
+      title: insertEvent.title,
+      description: insertEvent.description,
+      imageUrl: insertEvent.imageUrl,
+      date: insertEvent.date,
+      venue: insertEvent.venue,
+      price: insertEvent.price,
+      totalSupply: insertEvent.totalSupply,
+      remainingSupply: insertEvent.remainingSupply,
+      artistId: insertEvent.artistId,
+      contractAddress: insertEvent.contractAddress ?? null,
+      chainId: insertEvent.chainId,
+    };
     this.events.set(id, event);
     return event;
   }
