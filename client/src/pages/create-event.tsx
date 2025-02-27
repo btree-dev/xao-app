@@ -39,7 +39,7 @@ export default function CreateEvent() {
       title: "",
       description: "",
       imageUrl: "",
-      date: new Date(),
+      date: new Date().toISOString(), // Initialize with current date in ISO format
       venue: "",
       price: 0,
       totalSupply: 100,
@@ -55,7 +55,7 @@ export default function CreateEvent() {
       // Format all fields properly before submission
       const formattedData = {
         ...data,
-        date: new Date(data.date).toISOString(), // Ensure proper date format
+        date: data.date instanceof Date ? data.date.toISOString() : new Date(data.date).toISOString(),
         price: parseFloat(data.price.toString()),
         totalSupply: parseInt(data.totalSupply.toString()),
         remainingSupply: parseInt(data.totalSupply.toString()),
@@ -137,10 +137,10 @@ export default function CreateEvent() {
                           <Input
                             {...field}
                             type="datetime-local"
-                            value={value instanceof Date ? value.toISOString().slice(0, 16) : value}
+                            value={value ? new Date(value).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)}
                             onChange={(e) => {
                               const date = new Date(e.target.value);
-                              onChange(date);
+                              onChange(date.toISOString());
                             }}
                           />
                         </FormControl>

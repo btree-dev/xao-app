@@ -33,8 +33,16 @@ export default function EventPage() {
     );
   }
 
-  // Parse the date string to ensure it's a valid date
-  const eventDate = parseISO(event.date);
+  // Safely parse the date with error handling
+  let formattedDate = "Date not available";
+  try {
+    if (event.date) {
+      const eventDate = parseISO(event.date);
+      formattedDate = format(eventDate, "MMMM d, yyyy 'at' h:mm a");
+    }
+  } catch (error) {
+    console.error("Error parsing date:", error);
+  }
 
   return (
     <div className="min-h-screen">
@@ -60,7 +68,7 @@ export default function EventPage() {
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <span>{format(eventDate, "MMMM d, yyyy 'at' h:mm a")}</span>
+                  <span>{formattedDate}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-muted-foreground" />

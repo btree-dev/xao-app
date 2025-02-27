@@ -5,8 +5,16 @@ import { format, parseISO } from "date-fns";
 import { Link } from "wouter";
 
 export function EventCard({ event }: { event: Event }) {
-  // Parse the date string to ensure it's a valid date
-  const eventDate = parseISO(event.date);
+  // Safely parse and format the date
+  let formattedDate = "Date not available";
+  try {
+    if (event.date) {
+      const eventDate = parseISO(event.date);
+      formattedDate = format(eventDate, "MMM d, yyyy");
+    }
+  } catch (error) {
+    console.error("Error parsing date:", error);
+  }
 
   return (
     <Card className="overflow-hidden">
@@ -22,7 +30,7 @@ export function EventCard({ event }: { event: Event }) {
         <div className="flex justify-between items-start">
           <h3 className="text-lg font-semibold">{event.title}</h3>
           <div className="text-sm text-muted-foreground">
-            {format(eventDate, "MMM d, yyyy")}
+            {formattedDate}
           </div>
         </div>
       </CardHeader>
