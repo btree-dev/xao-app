@@ -58,7 +58,7 @@ export default function AuthPage() {
     defaultValues: {
       email: "",
       code: "",
-    }
+    },
   });
 
   const requestCodeMutation = useMutation({
@@ -72,7 +72,7 @@ export default function AuthPage() {
         description: "Please check your email for the verification code.",
       });
       setShowVerification(true);
-      // Set only the email field, leave code empty
+      // Set email but ensure code is empty
       verificationForm.reset({
         email: emailForm.getValues("email"),
         code: "",
@@ -172,14 +172,14 @@ export default function AuthPage() {
                   <FormField
                     control={verificationForm.control}
                     name="code"
-                    render={({ field }) => (
+                    render={({ field: { onChange, value } }) => (
                       <FormItem>
                         <FormLabel>Verification Code</FormLabel>
                         <FormControl>
                           <InputOTP
                             maxLength={6}
-                            value={field.value}
-                            onChange={field.onChange}
+                            value={value}
+                            onChange={onChange}
                           >
                             <InputOTPGroup>
                               <InputOTPSlot index={0} />
