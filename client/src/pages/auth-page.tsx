@@ -72,7 +72,11 @@ export default function AuthPage() {
         description: "Please check your email for the verification code.",
       });
       setShowVerification(true);
-      verificationForm.setValue("email", emailForm.getValues("email"));
+      // Set only the email field, leave code empty
+      verificationForm.reset({
+        email: emailForm.getValues("email"),
+        code: "",
+      });
     },
     onError: (error: Error) => {
       toast({
