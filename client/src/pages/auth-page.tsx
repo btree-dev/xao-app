@@ -174,19 +174,18 @@ export default function AuthPage() {
                         <FormControl>
                           <InputOTP
                             maxLength={6}
-                            render={() => (
-                              <InputOTPGroup>
-                                {[0, 1, 2, 3, 4, 5].map((index) => (
-                                  <InputOTPSlot
-                                    key={index}
-                                    index={index}
-                                  />
-                                ))}
-                              </InputOTPGroup>
-                            )}
                             value={field.value}
                             onChange={field.onChange}
-                          />
+                          >
+                            <InputOTPGroup>
+                              {[0, 1, 2, 3, 4, 5].map((index) => (
+                                <InputOTPSlot
+                                  key={index}
+                                  index={index}
+                                />
+                              ))}
+                            </InputOTPGroup>
+                          </InputOTP>
                         </FormControl>
                         <FormMessage />
                       </FormItem>
