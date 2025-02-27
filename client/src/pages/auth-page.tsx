@@ -25,6 +25,11 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 
 export default function AuthPage() {
   const { user } = useAuth();
@@ -167,7 +172,18 @@ export default function AuthPage() {
                       <FormItem>
                         <FormLabel>Verification Code</FormLabel>
                         <FormControl>
-                          <Input {...field} maxLength={6} />
+                          <InputOTP
+                            maxLength={6}
+                            render={({ slots }) => (
+                              <InputOTPGroup>
+                                {slots.map((slot, index) => (
+                                  <InputOTPSlot key={index} {...slot} />
+                                ))}
+                              </InputOTPGroup>
+                            )}
+                            value={field.value}
+                            onChange={field.onChange}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
