@@ -174,12 +174,11 @@ export default function AuthPage() {
                         <FormControl>
                           <InputOTP
                             maxLength={6}
-                            render={({ slots }) => (
+                            render={() => (
                               <InputOTPGroup>
                                 {[0, 1, 2, 3, 4, 5].map((index) => (
                                   <InputOTPSlot
                                     key={index}
-                                    {...(slots?.[index] || {})}
                                     index={index}
                                   />
                                 ))}
