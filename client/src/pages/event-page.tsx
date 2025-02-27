@@ -20,8 +20,8 @@ export default function EventPage() {
   const { connect, isConnected, mintTicket } = useWeb3();
 
   const { data: event, isLoading } = useQuery<Event>({
-    queryKey: ["/api/events", eventId],
     enabled: !isNaN(eventId), // Only run query if we have a valid ID
+    queryKey: ["/api/events", eventId],
   });
 
   if (isLoading || !event) {

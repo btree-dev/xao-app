@@ -19,7 +19,7 @@ function Router() {
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
-      <ProtectedRoute path="/event/:id" component={EventPage} />
+      <Route path="/event/:id" component={EventPage} />
       <ProtectedRoute path="/create-event" component={CreateEvent} />
       <ProtectedRoute path="/dashboard" component={Dashboard} />
       <Route component={NotFound} />
