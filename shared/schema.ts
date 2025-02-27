@@ -2,17 +2,6 @@ import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Custom transformers for proper type handling
-const dateSchema = z.preprocess((arg) => {
-  if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
-  return arg;
-}, z.date());
-
-const numberSchema = z.preprocess((arg) => {
-  if (typeof arg === 'string') return Number(arg);
-  return arg;
-}, z.number().min(0));
-
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -53,10 +42,6 @@ export const insertUserSchema = createInsertSchema(users)
   });
 
 export const insertEventSchema = createInsertSchema(events)
-  .extend({
-    date: dateSchema,
-    price: numberSchema,
-  })
   .pick({
     title: true,
     description: true,
@@ -72,9 +57,6 @@ export const insertEventSchema = createInsertSchema(events)
   });
 
 export const insertTicketSchema = createInsertSchema(tickets)
-  .extend({
-    purchaseDate: dateSchema,
-  })
   .pick({
     eventId: true,
     userId: true,

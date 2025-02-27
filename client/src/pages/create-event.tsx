@@ -52,13 +52,7 @@ export default function CreateEvent() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      // Ensure date is a proper Date object and price is a number
-      const formattedData = {
-        ...data,
-        date: new Date(data.date),
-        price: Number(data.price),
-      };
-      const res = await apiRequest("POST", "/api/events", formattedData);
+      const res = await apiRequest("POST", "/api/events", data);
       return res.json();
     },
     onSuccess: () => {
@@ -128,15 +122,14 @@ export default function CreateEvent() {
                   <FormField
                     control={form.control}
                     name="date"
-                    render={({ field: { value, onChange, ...field } }) => (
+                    render={({ field }) => (
                       <FormItem>
                         <FormLabel>Event Date</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             type="datetime-local"
-                            value={value instanceof Date ? value.toISOString().slice(0, 16) : ''}
-                            onChange={(e) => onChange(new Date(e.target.value))}
+                            value={field.value?.toString().slice(0, 16)}
                           />
                         </FormControl>
                         <FormMessage />
@@ -163,18 +156,11 @@ export default function CreateEvent() {
                   <FormField
                     control={form.control}
                     name="price"
-                    render={({ field: { value, onChange, ...field } }) => (
+                    render={({ field }) => (
                       <FormItem>
                         <FormLabel>Price (ETH)</FormLabel>
                         <FormControl>
-                          <Input 
-                            {...field}
-                            type="number" 
-                            min="0" 
-                            step="0.001"
-                            value={value}
-                            onChange={(e) => onChange(Number(e.target.value))}
-                          />
+                          <Input {...field} type="number" min="0" step="0.001" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
