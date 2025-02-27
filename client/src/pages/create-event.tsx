@@ -137,11 +137,7 @@ export default function CreateEvent() {
                           <Input
                             {...field}
                             type="datetime-local"
-                            value={value ? new Date(value).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16)}
-                            onChange={(e) => {
-                              const date = new Date(e.target.value);
-                              onChange(date.toISOString());
-                            }}
+                            value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ''}
                           />
                         </FormControl>
                         <FormMessage />
