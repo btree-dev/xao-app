@@ -4,7 +4,7 @@ import { Event } from "@shared/schema";
 import { NavHeader } from "@/components/nav-header";
 import { Button } from "@/components/ui/button";
 import { useWeb3 } from "@/hooks/use-web3";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import {
   Card,
   CardContent,
@@ -33,10 +33,13 @@ export default function EventPage() {
     );
   }
 
+  // Parse the date string to ensure it's a valid date
+  const eventDate = parseISO(event.date);
+
   return (
     <div className="min-h-screen">
       <NavHeader />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-2 gap-8">
           <div>
@@ -46,7 +49,7 @@ export default function EventPage() {
               className="rounded-lg w-full aspect-video object-cover"
             />
           </div>
-          
+
           <div className="space-y-6">
             <div>
               <h1 className="text-3xl font-bold mb-2">{event.title}</h1>
@@ -57,7 +60,7 @@ export default function EventPage() {
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <span>{format(new Date(event.date), "MMMM d, yyyy")}</span>
+                  <span>{format(eventDate, "MMMM d, yyyy 'at' h:mm a")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-muted-foreground" />
@@ -70,7 +73,7 @@ export default function EventPage() {
                 <div className="pt-4 border-t">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-lg font-medium">Price</span>
-                    <span className="text-2xl font-bold">{event.price} MATIC</span>
+                    <span className="text-2xl font-bold">{event.price} ETH</span>
                   </div>
                   {!isConnected ? (
                     <Button

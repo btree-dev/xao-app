@@ -1,10 +1,13 @@
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Event } from "@shared/schema";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Link } from "wouter";
 
 export function EventCard({ event }: { event: Event }) {
+  // Parse the date string to ensure it's a valid date
+  const eventDate = parseISO(event.date);
+
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video relative">
@@ -19,7 +22,7 @@ export function EventCard({ event }: { event: Event }) {
         <div className="flex justify-between items-start">
           <h3 className="text-lg font-semibold">{event.title}</h3>
           <div className="text-sm text-muted-foreground">
-            {format(new Date(event.date), "MMM d, yyyy")}
+            {format(eventDate, "MMM d, yyyy")}
           </div>
         </div>
       </CardHeader>
