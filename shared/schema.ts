@@ -33,6 +33,12 @@ export const tickets = pgTable("tickets", {
   purchaseDate: timestamp("purchase_date").notNull(),
 });
 
+// Custom date transformer for proper date handling
+const dateSchema = z.preprocess((arg) => {
+  if (typeof arg === 'string' || arg instanceof Date) return new Date(arg);
+  return arg;
+}, z.date());
+
 export const insertUserSchema = createInsertSchema(users)
   .pick({
     username: true,
@@ -42,6 +48,9 @@ export const insertUserSchema = createInsertSchema(users)
   });
 
 export const insertEventSchema = createInsertSchema(events)
+  .extend({
+    date: dateSchema,
+  })
   .pick({
     title: true,
     description: true,
@@ -57,6 +66,9 @@ export const insertEventSchema = createInsertSchema(events)
   });
 
 export const insertTicketSchema = createInsertSchema(tickets)
+  .extend({
+    purchaseDate: dateSchema,
+  })
   .pick({
     eventId: true,
     userId: true,
