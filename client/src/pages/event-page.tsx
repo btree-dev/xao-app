@@ -68,7 +68,9 @@ export default function EventPage() {
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <span>{formattedDate}</span>
+                  <span>
+                    {format(new Date(event.date || Date.now()), "MMMM d, yyyy")}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-muted-foreground" />
@@ -81,7 +83,9 @@ export default function EventPage() {
                 <div className="pt-4 border-t">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-lg font-medium">Price</span>
-                    <span className="text-2xl font-bold">{event.price} ETH</span>
+                    <span className="text-2xl font-bold">
+                      {event.price} ETH
+                    </span>
                   </div>
                   {!isConnected ? (
                     <Button
@@ -93,10 +97,17 @@ export default function EventPage() {
                   ) : (
                     <Button
                       className="w-full"
-                      onClick={() => mintTicket(event.id, event.totalSupply - event.remainingSupply + 1)}
+                      onClick={() =>
+                        mintTicket(
+                          event.id,
+                          event.totalSupply - event.remainingSupply + 1,
+                        )
+                      }
                       disabled={event.remainingSupply === 0}
                     >
-                      {event.remainingSupply === 0 ? "Sold Out" : "Purchase Ticket"}
+                      {event.remainingSupply === 0
+                        ? "Sold Out"
+                        : "Purchase Ticket"}
                     </Button>
                   )}
                 </div>
