@@ -16,7 +16,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/events", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
     if (!req.user?.isArtist) return res.status(403).send("Only artists can create events");
 
     const event = await storage.createEvent({
@@ -29,7 +28,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Artist events
   app.get("/api/artist/events", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
     if (!req.user?.isArtist) return res.status(403).send("Not an artist");
 
     const events = await storage.getArtistEvents(req.user.id);
@@ -38,7 +36,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Wallet update
   app.post("/api/user/wallet", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
     const user = await storage.updateUserWallet(req.user.id, req.body.walletAddress);
     res.json(user);
   });

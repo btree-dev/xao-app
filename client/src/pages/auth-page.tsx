@@ -23,112 +23,86 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
+import { User as SelectUser } from "@shared/schema";
+import { useNavigate } from "react-router-dom";
 
 import { useOkto } from "@okto_web3/react-sdk";
 import { GoogleLogin } from "@react-oauth/google";
+import Dashboard from "./dashboard";
 
 export default function AuthPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [isArtist, setIsArtist] = useState(false);
-  const [showVerification, setShowVerification] = useState(false);
+  const [isArtist, setIsArtist] = useState(true);
   const oktoClient = useOkto();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   if (oktoClient.userSWA) {
-  //     setLocation("/");
-  //   }
-  // }, [oktoClient.userSWA, setLocation]);
-
-  const emailForm = useForm({
-    resolver: zodResolver(
-      verifyEmailSchema.pick({ email: true })
-    ),
-    defaultValues: {
-      email: "",
+  useEffect(() => {
+    if (oktoClient.isLoggedIn()) {
+      console.log("logged in");
+      addUser();
+      navigate("/dashboard");
+      return;
     }
-  });
+    // If not authenticated with Okto, check for stored Google token
+    const storedToken = localStorage.getItem("googleIdToken");
+    if (storedToken) {
+      console.log("storedToken", storedToken);
+      handleAuthenticate(storedToken);
+    }
+  }, [oktoClient.isLoggedIn()]);
 
-  const verificationForm = useForm({
-    resolver: zodResolver(verifyEmailSchema),
-    defaultValues: {
-      code: "",
-      email: "",
-    },
-  });
+  // Authenticates user with Okto using Google ID token
+  const handleAuthenticate = async (idToken: string) => {
+    try {
+      const user = await oktoClient.loginUsingOAuth({
+        idToken: idToken,
+        provider: "google",
+      });
+      console.log("Authenticated with Okto:", user);
+      navigate("/home");
+    } catch (error) {
+      console.error("Authentication failed:", error);
 
-  async function handleGoogleLogin(credentialResponse: any) {
+      // Remove invalid token from storage
+      localStorage.removeItem("googleIdToken");
+    }
+  };
+  
+  // Handles successful Google login
+  // 1. Stores the ID token in localStorage
+  // 2. Initiates Okto authentication
+  const handleGoogleLogin = async (credentialResponse: any) => {
+    const idToken = credentialResponse.credential || "";
+    if (idToken) {
+      localStorage.setItem("googleIdToken", idToken);
+      handleAuthenticate(idToken);
+    }
+  };
+
+  function addUser() {
+    const user = oktoClient.userSWA ? { isArtist: isArtist, walletAddress: oktoClient.userSWA } as SelectUser : null;
+    queryClient.setQueryData(["/api/user"], user);
+  }
+  async function handleAsyncGoogleLogin(credentialResponse: any) {
     try {
         setIsLoading(true);
         await oktoClient.loginUsingOAuth({
             idToken: credentialResponse.credential,
             provider: "google",
         });
+        console.log("Google login successful");
+        addUser();
     } catch (error) {
         console.error("Authentication error:", error);
     } finally {
         setIsLoading(false);
     }
   }
-
-  const requestCodeMutation = useMutation({
-    mutationFn: async (data: { email: string }) => {
-      const res = await apiRequest("POST", "/api/auth/request-code", data);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: "Verification code sent",
-        description: "Please check your email for the verification code.",
-      });
-      setShowVerification(true);
-      // Set email but ensure code is empty
-      verificationForm.reset({
-        email: emailForm.getValues("email"),
-        code: "",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to send code",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const verifyCodeMutation = useMutation({
-    mutationFn: async (data: { email: string; code: string }) => {
-      const res = await apiRequest("POST", "/api/auth/verify", {
-        ...data,
-        isArtist,
-      });
-      return res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "You have been logged in successfully.",
-      });
-      setLocation("/");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Verification failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   return (
     <div className="min-h-screen flex">
@@ -145,11 +119,14 @@ export default function AuthPage() {
           <CardContent>
           <div>
             {isLoading ? (
-                <div>Loading...</div>
+              <div>Loading...</div>
             ) : oktoClient.userSWA ? (
+              <>
+              {addUser()}
               <div>Logged In...</div>
+              </>
             ) : (
-                <GoogleLogin onSuccess={handleGoogleLogin} />
+              <GoogleLogin onSuccess={handleAsyncGoogleLogin} />
             )}
         </div>
           </CardContent>

@@ -7,6 +7,7 @@ import {
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useOkto } from "@okto_web3/react-sdk";
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -22,6 +23,9 @@ type LoginData = Pick<InsertUser, "username" | "password">;
 export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const oktoClient = useOkto();
+  const isloggedIn = oktoClient.isLoggedIn();
+  
   const {
     data: user,
     error,
@@ -30,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
+
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
