@@ -7,6 +7,7 @@ import { insertEventSchema } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
+import { Web3Storage } from 'web3.storage';
 import {
   Form,
   FormControl,
@@ -18,14 +19,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
 import type { z } from "zod";
 
 type EventFormData = z.infer<typeof insertEventSchema>;
 
+// Use import.meta.env instead of process.env
+const client = new Web3Storage({ token: import.meta.env.VITE_WEB3_STORAGE_TOKEN });
+
 export default function CreateEvent() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     if (!user?.isArtist) {
@@ -39,7 +45,7 @@ export default function CreateEvent() {
       title: "",
       description: "",
       imageUrl: "",
-      date: new Date().toISOString(), // Initialize with current date in ISO format
+      date: new Date().toISOString(),
       venue: "",
       price: 0,
       totalSupply: 100,
@@ -52,7 +58,6 @@ export default function CreateEvent() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      // Format all fields properly before submission
       const formattedData = {
         ...data,
         date: data.date instanceof Date ? data.date.toISOString() : new Date(data.date).toISOString(),
@@ -68,6 +73,25 @@ export default function CreateEvent() {
       setLocation("/dashboard");
     },
   });
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      setUploadingImage(true);
+      // Upload file to IPFS
+      const cid = await client.put([file], {
+        name: file.name,
+        maxRetries: 3,
+      });
+
+      // Construct the IPFS URL
+      const imageUrl = `https://${cid}.ipfs.w3s.link/${file.name}`;
+      form.setValue("imageUrl", imageUrl);
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -117,9 +141,33 @@ export default function CreateEvent() {
                   name="imageUrl"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Image URL</FormLabel>
+                      <FormLabel>Event Image</FormLabel>
                       <FormControl>
-                        <Input {...field} type="url" />
+                        <div className="space-y-4">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                handleImageUpload(file);
+                              }
+                            }}
+                          />
+                          {uploadingImage && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Uploading image to IPFS...
+                            </div>
+                          )}
+                          {field.value && (
+                            <img
+                              src={field.value}
+                              alt="Event preview"
+                              className="rounded-md max-h-48 object-cover"
+                            />
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -205,9 +253,16 @@ export default function CreateEvent() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={createEventMutation.isPending}
+                  disabled={createEventMutation.isPending || uploadingImage}
                 >
-                  Create Event
+                  {createEventMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Event...
+                    </>
+                  ) : (
+                    "Create Event"
+                  )}
                 </Button>
               </form>
             </Form>
