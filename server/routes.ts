@@ -16,14 +16,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/events", async (req, res) => {
-    if (!req.user?.isArtist) return res.status(403).send("Only artists can create events");
+    try {
+      if (!req.user) {
+        return res.status(401).send("Unauthorized - Please login first");
+      }
 
-    const event = await storage.createEvent({
-      ...req.body,
-      artistId: req.user.id,
-      remainingSupply: req.body.totalSupply,
-    });
-    res.status(201).json(event);
+      if (!req.user.isArtist) {
+        return res.status(403).send("Only artists can create events");
+      }
+
+      console.log('Creating event with data:', {
+        ...req.body,
+        artistId: req.user.id,
+      });
+
+      const event = await storage.createEvent({
+        ...req.body,
+        artistId: req.user.id,
+        remainingSupply: req.body.totalSupply,
+      });
+
+      console.log('Event created successfully:', event);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error('Error creating event:', error);
+      res.status(500).send("Failed to create event");
+    }
   });
 
   // Artist events

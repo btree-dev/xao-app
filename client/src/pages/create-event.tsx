@@ -22,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 type EventFormData = z.infer<typeof insertEventSchema>;
 
@@ -32,6 +33,7 @@ export default function CreateEvent() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [uploadingImage, setUploadingImage] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!user?.isArtist) {
@@ -58,19 +60,41 @@ export default function CreateEvent() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: EventFormData) => {
-      const formattedData = {
-        ...data,
-        date: data.date instanceof Date ? data.date.toISOString() : new Date(data.date).toISOString(),
-        price: parseFloat(data.price.toString()),
-        totalSupply: parseInt(data.totalSupply.toString()),
-        remainingSupply: parseInt(data.totalSupply.toString()),
-      };
-      const res = await apiRequest("POST", "/api/events", formattedData);
-      return res.json();
+      try {
+        const formattedData = {
+          ...data,
+          date: data.date instanceof Date ? data.date.toISOString() : new Date(data.date).toISOString(),
+          price: parseFloat(data.price.toString()),
+          totalSupply: parseInt(data.totalSupply.toString()),
+          remainingSupply: parseInt(data.totalSupply.toString()),
+        };
+        console.log('Submitting event data:', formattedData);
+        const res = await apiRequest("POST", "/api/events", formattedData);
+        if (!res.ok) {
+          const error = await res.text();
+          throw new Error(error);
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Event creation error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Event created successfully!",
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setLocation("/dashboard");
+    },
+    onError: (error: Error) => {
+      console.error('Event creation error:', error);
+      toast({
+        title: "Error",
+        description: `Failed to create event: ${error.message}`,
+        variant: "destructive",
+      });
     },
   });
 
@@ -86,10 +110,28 @@ export default function CreateEvent() {
       // Construct the IPFS URL
       const imageUrl = `https://${cid}.ipfs.w3s.link/${file.name}`;
       form.setValue("imageUrl", imageUrl);
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully!",
+      });
     } catch (error) {
       console.error("Failed to upload image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const onSubmit = async (data: EventFormData) => {
+    console.log('Form submission data:', data);
+    try {
+      await createEventMutation.mutateAsync(data);
+    } catch (error) {
+      console.error('Form submission error:', error);
     }
   };
 
@@ -105,7 +147,7 @@ export default function CreateEvent() {
           <CardContent>
             <Form {...form}>
               <form
-                onSubmit={form.handleSubmit((data) => createEventMutation.mutate(data))}
+                onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-6"
               >
                 <FormField
