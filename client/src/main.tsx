@@ -12,23 +12,21 @@ import { Buffer } from 'buffer';
 window.Buffer = Buffer;
 
 const config: OktoClientConfig = {
-    environment: import.meta.env.VITE_OKTO_ENVIRONMENT,
-    clientPrivateKey: import.meta.env.VITE_CLIENT_PRIVATE_KEY,
-    clientSWA: import.meta.env.VITE_CLIENT_SWA,
-  };
-  
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  console.log(GOOGLE_CLIENT_ID);
-  console.log(config);
-  
-  createRoot(document.getElementById("root")!).render(
-    <StrictMode>
-      <BrowserRouter>
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          <OktoProvider config={config}>
-            <App />
-          </OktoProvider>
-        </GoogleOAuthProvider>
-      </BrowserRouter>
-    </StrictMode>
-  );
+  environment: "mainnet", // or use import.meta.env.VITE_OKTO_ENV if you want to make it configurable
+  clientId: import.meta.env.VITE_OKTO_CLIENT_ID,
+  redirectUri: import.meta.env.VITE_OKTO_REDIRECT_URI,
+};
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <OktoProvider config={config}>
+          <App />
+        </OktoProvider>
+      </GoogleOAuthProvider>
+    </BrowserRouter>
+  </StrictMode>
+);
