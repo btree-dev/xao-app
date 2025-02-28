@@ -54,6 +54,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Wallet update
   app.post("/api/user/wallet", async (req, res) => {
+    if (!req.user) return res.status(401).send("Unauthorized");
+
     const user = await storage.updateUserWallet(req.user.id, req.body.walletAddress);
     res.json(user);
   });

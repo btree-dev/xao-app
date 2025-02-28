@@ -3,7 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey(), // Changed from serial to text
   email: text("email").notNull().unique(),
   isArtist: boolean("is_artist").notNull().default(false),
   walletAddress: text("wallet_address"),
@@ -27,7 +27,7 @@ export const events = pgTable("events", {
   price: integer("price").notNull(),
   totalSupply: integer("total_supply").notNull(),
   remainingSupply: integer("remaining_supply").notNull(),
-  artistId: integer("artist_id").notNull(),
+  artistId: text("artist_id").notNull(), // Changed from integer to text
   contractAddress: text("contract_address"),
   chainId: integer("chain_id").notNull(),
 });
@@ -35,7 +35,7 @@ export const events = pgTable("events", {
 export const tickets = pgTable("tickets", {
   id: serial("id").primaryKey(),
   eventId: integer("event_id").notNull(),
-  userId: integer("user_id").notNull(),
+  userId: text("user_id").notNull(), // Changed from integer to text
   tokenId: integer("token_id").notNull(),
   purchaseDate: timestamp("purchase_date").notNull(),
 });

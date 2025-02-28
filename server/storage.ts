@@ -1,6 +1,7 @@
 import { InsertUser, User, Event, InsertEvent, Ticket, InsertTicket, VerificationCode } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import crypto from 'crypto';
 
 const MemoryStore = createMemoryStore(session);
 
@@ -8,10 +9,10 @@ export interface IStorage {
   sessionStore: session.Store;
 
   // User operations
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserWallet(userId: number, walletAddress: string): Promise<User>;
+  updateUserWallet(userId: string, walletAddress: string): Promise<User>;
 
   // Verification operations
   createVerificationCode(email: string, code: string): Promise<VerificationCode>;
@@ -22,21 +23,20 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   getEvent(id: number): Promise<Event | undefined>;
   getEvents(): Promise<Event[]>;
-  getArtistEvents(artistId: number): Promise<Event[]>;
+  getArtistEvents(artistId: string): Promise<Event[]>;
 
   // Ticket operations
   createTicket(ticket: InsertTicket): Promise<Ticket>;
-  getUserTickets(userId: number): Promise<Ticket[]>;
+  getUserTickets(userId: string): Promise<Ticket[]>;
   getEventTickets(eventId: number): Promise<Ticket[]>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<number, User>;
+  private users: Map<string, User>;
   private events: Map<number, Event>;
   private tickets: Map<number, Ticket>;
   private verificationCodes: Map<number, VerificationCode>;
   sessionStore: session.Store;
-  private nextUserId: number;
   private nextEventId: number;
   private nextTicketId: number;
   private nextVerificationCodeId: number;
@@ -46,7 +46,6 @@ export class MemStorage implements IStorage {
     this.events = new Map();
     this.tickets = new Map();
     this.verificationCodes = new Map();
-    this.nextUserId = 1;
     this.nextEventId = 1;
     this.nextTicketId = 1;
     this.nextVerificationCodeId = 1;
@@ -55,7 +54,7 @@ export class MemStorage implements IStorage {
     });
   }
 
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
   }
 
@@ -66,7 +65,7 @@ export class MemStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.nextUserId++;
+    const id = crypto.randomUUID(); // Generate a UUID for the user ID
     const user: User = {
       id,
       email: insertUser.email,
@@ -75,6 +74,14 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, user);
     return user;
+  }
+
+  async updateUserWallet(userId: string, walletAddress: string): Promise<User> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error("User not found");
+    const updatedUser = { ...user, walletAddress };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
 
   async createVerificationCode(email: string, code: string): Promise<VerificationCode> {
@@ -109,14 +116,6 @@ export class MemStorage implements IStorage {
     }
   }
 
-  async updateUserWallet(userId: number, walletAddress: string): Promise<User> {
-    const user = await this.getUser(userId);
-    if (!user) throw new Error("User not found");
-    const updatedUser = { ...user, walletAddress };
-    this.users.set(userId, updatedUser);
-    return updatedUser;
-  }
-
   async createEvent(insertEvent: InsertEvent): Promise<Event> {
     const id = this.nextEventId++;
     const event: Event = {
@@ -145,7 +144,7 @@ export class MemStorage implements IStorage {
     return Array.from(this.events.values());
   }
 
-  async getArtistEvents(artistId: number): Promise<Event[]> {
+  async getArtistEvents(artistId: string): Promise<Event[]> {
     return Array.from(this.events.values()).filter(
       (event) => event.artistId === artistId,
     );
@@ -158,7 +157,7 @@ export class MemStorage implements IStorage {
     return ticket;
   }
 
-  async getUserTickets(userId: number): Promise<Ticket[]> {
+  async getUserTickets(userId: string): Promise<Ticket[]> {
     return Array.from(this.tickets.values()).filter(
       (ticket) => ticket.userId === userId,
     );
