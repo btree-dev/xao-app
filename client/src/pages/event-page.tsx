@@ -3,7 +3,6 @@ import { useParams } from "wouter";
 import { Event } from "@shared/schema";
 import { NavHeader } from "@/components/nav-header";
 import { Button } from "@/components/ui/button";
-import { useWeb3 } from "@/hooks/use-web3";
 import { format, parseISO } from "date-fns";
 import {
   Card,
@@ -17,7 +16,6 @@ import { Loader2, MapPin, Calendar, Ticket } from "lucide-react";
 export default function EventPage() {
   const params = useParams<{ id: string }>();
   const eventId = parseInt(params.id);
-  const { connect, isConnected, mintTicket } = useWeb3();
 
   const { data: events, isLoading } = useQuery<Event[]>({
     enabled: !isNaN(eventId), // Only run query if we have a valid ID
@@ -37,6 +35,7 @@ export default function EventPage() {
 
   // Safely parse the date with error handling
   let formattedDate = "Date not available";
+  const isConnected = false;
   const event = events[eventId - 1];
   try {
     if (event.date) {
@@ -91,19 +90,12 @@ export default function EventPage() {
                   {!isConnected ? (
                     <Button
                       className="w-full bg-gradient-to-r from-blue-500 to-purple-500"
-                      onClick={() => connect()}
-                    >
+                      >
                       Connect Wallet to Purchase
                     </Button>
                   ) : (
                     <Button
                       className="w-full"
-                      onClick={() =>
-                        mintTicket(
-                          event.id,
-                          event.totalSupply - event.remainingSupply + 1,
-                        )
-                      }
                       disabled={event.remainingSupply === 0}
                     >
                       {event.remainingSupply === 0

@@ -2,10 +2,9 @@ import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { AuthProvider } from "@/hooks/use-auth";
-import { Web3Provider } from "@/hooks/use-web3";
+import { useOkto } from "@okto_web3/react-sdk";
 import { Toaster } from "@/components/ui/toaster";
 import { ProtectedRoute } from "./lib/protected-route";
-import { NavHeader } from "@/components/nav-header";
 
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
@@ -28,16 +27,20 @@ function Router() {
 }
 
 function App() {
+  const oktoClient = useOkto();
+
+  //check if user is already logged in
+  const isloggedIn = oktoClient.isLoggedIn();
+  console.log(isloggedIn);
+  console.log(oktoClient);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Web3Provider>
           <div className="min-h-screen bg-background">
-            <NavHeader />
             <Router />
           </div>
           <Toaster />
-        </Web3Provider>
       </AuthProvider>
     </QueryClientProvider>
   );

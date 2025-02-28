@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { Web3Button } from "@/components/web3-button";
 
 export function NavHeader() {
   const { user, logoutMutation } = useAuth();
@@ -28,8 +27,6 @@ export function NavHeader() {
                 <Button variant="ghost">Dashboard</Button>
               </Link>
 
-              <Web3Button />
-
               <Button
                 variant="ghost"
                 onClick={() => logoutMutation.mutate()}
@@ -39,8 +36,6 @@ export function NavHeader() {
             </>
           ) : (
             <>
-              <Web3Button />
-
               <Link href="/auth">
                 <Button variant="outline">Login / Register</Button>
               </Link>

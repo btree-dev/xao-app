@@ -31,18 +31,23 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 
+import { useOkto } from "@okto_web3/react-sdk";
+import { GoogleLogin } from "@react-oauth/google";
+
 export default function AuthPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isArtist, setIsArtist] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
+  const oktoClient = useOkto();
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      setLocation("/");
-    }
-  }, [user, setLocation]);
+  // useEffect(() => {
+  //   if (oktoClient.userSWA) {
+  //     setLocation("/");
+  //   }
+  // }, [oktoClient.userSWA, setLocation]);
 
   const emailForm = useForm({
     resolver: zodResolver(
@@ -56,10 +61,24 @@ export default function AuthPage() {
   const verificationForm = useForm({
     resolver: zodResolver(verifyEmailSchema),
     defaultValues: {
-      email: "",
       code: "",
+      email: "",
     },
   });
+
+  async function handleGoogleLogin(credentialResponse: any) {
+    try {
+        setIsLoading(true);
+        await oktoClient.loginUsingOAuth({
+            idToken: credentialResponse.credential,
+            provider: "google",
+        });
+    } catch (error) {
+        console.error("Authentication error:", error);
+    } finally {
+        setIsLoading(false);
+    }
+  }
 
   const requestCodeMutation = useMutation({
     mutationFn: async (data: { email: string }) => {
@@ -124,97 +143,15 @@ export default function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!showVerification ? (
-              <Form {...emailForm}>
-                <form
-                  onSubmit={emailForm.handleSubmit((data) =>
-                    requestCodeMutation.mutate(data)
-                  )}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={emailForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input {...field} type="email" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormItem className="flex items-center justify-between">
-                    <FormLabel>Register as an Artist</FormLabel>
-                    <Switch
-                      checked={isArtist}
-                      onCheckedChange={setIsArtist}
-                    />
-                  </FormItem>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={requestCodeMutation.isPending}
-                  >
-                    Send Verification Code
-                  </Button>
-                </form>
-              </Form>
+          <div>
+            {isLoading ? (
+                <div>Loading...</div>
+            ) : oktoClient.userSWA ? (
+              <div>Logged In...</div>
             ) : (
-              <Form {...verificationForm}>
-                <form
-                  onSubmit={verificationForm.handleSubmit((data) =>
-                    verifyCodeMutation.mutate(data)
-                  )}
-                  className="space-y-4"
-                >
-                  <FormField
-                    control={verificationForm.control}
-                    name="code"
-                    render={({ field: { onChange, value } }) => (
-                      <FormItem>
-                        <FormLabel>Verification Code</FormLabel>
-                        <FormControl>
-                          <InputOTP
-                            maxLength={6}
-                            value={value}
-                            onChange={onChange}
-                          >
-                            <InputOTPGroup>
-                              <InputOTPSlot index={0} />
-                              <InputOTPSlot index={1} />
-                              <InputOTPSlot index={2} />
-                              <InputOTPSlot index={3} />
-                              <InputOTPSlot index={4} />
-                              <InputOTPSlot index={5} />
-                            </InputOTPGroup>
-                          </InputOTP>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => setShowVerification(false)}
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="flex-1"
-                      disabled={verifyCodeMutation.isPending}
-                    >
-                      Verify
-                    </Button>
-                  </div>
-                </form>
-              </Form>
+                <GoogleLogin onSuccess={handleGoogleLogin} />
             )}
+        </div>
           </CardContent>
         </Card>
       </div>
