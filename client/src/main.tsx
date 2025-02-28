@@ -7,17 +7,19 @@ import { OktoClientConfig, OktoProvider } from "@okto_web3/react-sdk";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import App from "./App";
 import "./index.css";
-import { Buffer } from 'buffer';
+import { Buffer } from "buffer";
 
 window.Buffer = Buffer;
 
 const config: OktoClientConfig = {
-  environment: "mainnet", // or use import.meta.env.VITE_OKTO_ENV if you want to make it configurable
-  clientId: import.meta.env.VITE_OKTO_CLIENT_ID,
-  redirectUri: import.meta.env.VITE_OKTO_REDIRECT_URI,
+  environment: import.meta.env.VITE_OKTO_ENVIRONMENT,
+  clientPrivateKey: import.meta.env.VITE_CLIENT_PRIVATE_KEY,
+  clientSWA: import.meta.env.VITE_CLIENT_SWA,
 };
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+console.log(GOOGLE_CLIENT_ID);
+console.log(config);
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -28,5 +30,5 @@ createRoot(document.getElementById("root")!).render(
         </OktoProvider>
       </GoogleOAuthProvider>
     </BrowserRouter>
-  </StrictMode>
+  </StrictMode>,
 );
