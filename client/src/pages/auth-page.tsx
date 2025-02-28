@@ -85,7 +85,7 @@ export default function AuthPage() {
   };
 
   function addUser() {
-    const user = oktoClient.userSWA ? { isArtist: isArtist, walletAddress: oktoClient.userSWA } as SelectUser : null;
+    const user = oktoClient.userSWA ? { isArtist: isArtist, id: oktoClient.userSWA, walletAddress: oktoClient.userSWA } as SelectUser : null;
     queryClient.setQueryData(["/api/user"], user);
   }
   async function handleAsyncGoogleLogin(credentialResponse: any) {

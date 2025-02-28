@@ -46,9 +46,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Artist events
   app.get("/api/artist/events", async (req, res) => {
-    if (!req.user?.isArtist) return res.status(403).send("Not an artist");
-
-    const events = await storage.getArtistEvents(req.user.id);
+    let events = [];
+    if(req?.user?.id === undefined) {
+      events = await storage.getEvents();
+    } else {
+      events = await storage.getArtistEvents(req.user.id);
+    }
     res.json(events);
   });
 
