@@ -28,7 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User as SelectUser } from "@shared/schema";
 import { useNavigate } from "react-router-dom";
 
-import { useOkto } from "@okto_web3/react-sdk";
+import { getAccount, useOkto } from "@okto_web3/react-sdk";
 import { GoogleLogin } from "@react-oauth/google";
 import Dashboard from "./dashboard";
 
@@ -84,9 +84,19 @@ export default function AuthPage() {
     }
   };
 
-  function addUser() {
-    const user = oktoClient.userSWA ? { isArtist: isArtist, id: oktoClient.userSWA, walletAddress: oktoClient.userSWA } as SelectUser : null;
+  function addUser() {      
+    
+    const user = oktoClient?.userSWA ? { isArtist: isArtist, id: oktoClient.userSWA, walletAddress: oktoClient.userSWA, } as SelectUser : null;
     queryClient.setQueryData(["/api/user"], user);
+
+    const getData = async () => {  
+      const accounts = await getAccount(oktoClient);
+      const userAccount = accounts.find(account => account.networkName === "BASE_TESTNET");
+      console.log("User Address:", userAccount?.address);
+      const user = userAccount?.address ? { isArtist: isArtist, id: userAccount?.address, walletAddress: userAccount?.address } as SelectUser : null;
+      queryClient.setQueryData(["/api/user"], user);
+    };
+    getData();
   }
   async function handleAsyncGoogleLogin(credentialResponse: any) {
     try {
