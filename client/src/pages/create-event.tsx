@@ -53,7 +53,7 @@ export default function CreateEvent() {
     defaultValues: {
       title: "",
       description: "",
-      imageUrl: "",
+      imageUrl: "/newcover.jpg",
       date: undefined,
       venue: "",
       price: 0,

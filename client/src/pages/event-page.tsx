@@ -12,17 +12,40 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Loader2, MapPin, Calendar, Ticket } from "lucide-react";
+import { FundButton, getOnrampBuyUrl } from '@coinbase/onchainkit/fund';
+import { useAuth } from "@/hooks/use-auth";
+import { baseSepolia } from 'viem/chains';
+import { useOkto, getAccount } from "@okto_web3/react-sdk";
+import { useState } from "react";
 
+
+
+
+const projectId = 'import.meta.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_ID';
+
+ 
 export default function EventPage() {
   const params = useParams<{ id: string }>();
   const eventId = parseInt(params.id);
+  const oktoClient = useOkto();
+  const [isAccountLoading, setIsAccountLoading] = useState(true);
+  let address = '';
 
   const { data: events, isLoading } = useQuery<Event[]>({
     enabled: !isNaN(eventId), // Only run query if we have a valid ID
     queryKey: ["/api/events", eventId],
   });
 
-  if (isLoading || !events) {
+  const getData = async () => {  
+    const accounts = await getAccount(oktoClient);
+    const userAccount = accounts.find(account => account.networkName === "BASE_TESTNET");
+    console.log("User Address:", userAccount?.address);
+    address = userAccount?.address || '';
+    setIsAccountLoading(false);
+  };
+  getData();
+
+  if (isLoading || isAccountLoading || !events) {
     return (
       <div className="min-h-screen">
         <NavHeader />
@@ -46,6 +69,15 @@ export default function EventPage() {
     console.error("Error parsing date:", error);
   }
 
+
+  const onrampBuyUrl = getOnrampBuyUrl({
+    projectId,
+    addresses: { [address]: ['baseSepolia'] },
+    assets: ['ETH'],
+    presetFiatAmount: event.price,
+    fiatCurrency: 'USD'
+  });
+   
   return (
     <div className="min-h-screen">
       <NavHeader />

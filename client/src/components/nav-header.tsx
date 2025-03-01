@@ -10,7 +10,7 @@ export function NavHeader() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/">
           <a className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">
-            NFTickets
+            Xao
           </a>
         </Link>
 

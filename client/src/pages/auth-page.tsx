@@ -120,7 +120,7 @@ export default function AuthPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 text-transparent bg-clip-text">
-              NFTickets
+              Xao
             </CardTitle>
             <CardDescription>
               The Web3-native platform for event tickets

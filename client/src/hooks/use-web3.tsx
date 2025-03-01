@@ -24,7 +24,7 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     mutationFn: async () => {
       try {
         const wallet = new CoinbaseWalletSDK({
-          appName: 'NFTickets',
+          appName: 'Xao',
           appLogoUrl: '/icon-192.png',
         });
 

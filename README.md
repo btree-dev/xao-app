@@ -1,4 +1,4 @@
-# NFTickets - Web3 Event Platform
+# Xao - Web3 Event Platform
 
 A Web3-native event platform for NFT ticket sales with advanced wallet connectivity and user experience enhancements.
 
@@ -25,7 +25,7 @@ A Web3-native event platform for NFT ticket sales with advanced wallet connectiv
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd nftickets
+cd Xao
 ```
 
 2. Install dependencies:

@@ -11,7 +11,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
-    "@coinbase/onchainkit": "^0.37.4",
+    "@coinbase/onchainkit": "^0.37.5",
     "@coinbase/wallet-sdk": "^4.3.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
