@@ -142,13 +142,6 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
-      <div
-        className="hidden lg:block flex-1 bg-cover bg-center"
-        style={{
-          backgroundImage:
-            'url("https://images.unsplash.com/photo-1653389525308-e7ab9fc0c260")',
-        }}
-      />
     </div>
   );
 }
