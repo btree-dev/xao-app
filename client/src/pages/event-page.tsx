@@ -39,7 +39,7 @@ export default function EventPage() {
   const event = events[eventId - 1];
   try {
     if (event.date) {
-      const eventDate = parseISO(event.date.toISOString());
+      const eventDate = parseISO(event.date);
       formattedDate = format(eventDate, "MMMM d, yyyy 'at' h:mm a");
     }
   } catch (error) {
